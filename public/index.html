@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>语言包提取器2.0</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+        font-family: -apple-system, sans-serif;
+        background: #f0f2f5;
+      }
+
+      .app-wrapper {
+        display: flex;
+        height: 100vh;
+        width: 100vw;
+        transition: all 0.3s ease;
+      }
+
+      /* 侧边栏 */
+      .sidebar {
+        width: 450px;
+        min-width: 300px;
+        max-width: 900px;
+        background: white;
+        display: flex;
+        flex-direction: column;
+        padding: 25px;
+        border-right: 1px solid #ddd;
+        z-index: 10;
+        transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+      }
+      .sidebar-content {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      /* 侧边栏收缩按钮 */
+      .toggle-trigger {
+        position: absolute;
+        right: -15px;
+        top: 50%;
+        width: 30px;
+        height: 60px;
+        background: #007bff;
+        color: white;
+        border-radius: 0 8px 8px 0;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+      }
+
+      .resizer {
+        width: 8px;
+        cursor: col-resize;
+        background: #f8f9fa;
+        border-left: 1px solid #ddd;
+      }
+      .resizer:hover {
+        background: #007bff;
+      }
+
+      /* 预览控制栏 */
+      .preview-area {
+        flex-grow: 1;
+        background: #e0e0e0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .device-controls {
+        background: white;
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        align-items: center;
+      }
+      .device-btn {
+        padding: 6px 15px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background: #fff;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: bold;
+        transition: all 0.2s;
+      }
+      .device-btn.active {
+        background: #007bff;
+        color: white;
+        border-color: #007bff;
+      }
+
+      /* 预览容器：模拟手机效果的关键 */
+      .iframe-container {
+        flex-grow: 1;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 20px;
+        overflow: auto;
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+      }
+
+      /* 响应式尺寸定义 */
+      .view-pc {
+        width: 100%;
+        height: 100%;
+        box-shadow: none;
+        border: none;
+      }
+      .view-tablet {
+        width: 768px;
+        height: 1024px;
+        border: 12px solid #333;
+        border-radius: 24px;
+        background: white;
+      }
+      .view-mobile {
+        width: 375px;
+        height: 667px;
+        border: 12px solid #333;
+        border-radius: 32px;
+        background: white;
+      }
+
+      iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        border-radius: inherit;
+      }
+
+      /* UI 元素保持不变 */
+      h2 {
+        font-size: 1.4rem;
+        margin: 0 0 10px 0;
+      }
+      .input-box {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #007bff;
+        border-radius: 6px;
+        margin-bottom: 10px;
+        outline: none;
+      }
+      .btn-run {
+        width: 100%;
+        background: #007bff;
+        color: white;
+        padding: 14px;
+        border: none;
+        border-radius: 6px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      .result-wrapper {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        margin-top: 15px;
+        border-top: 1px solid #eee;
+        padding-top: 15px;
+        min-height: 0;
+      }
+      #editor {
+        flex-grow: 1;
+        background: #1e1e1e;
+        color: #d4d4d4;
+        padding: 15px;
+        border-radius: 8px;
+        font-family: monospace;
+        font-size: 13px;
+        resize: none;
+        outline: none;
+        margin-bottom: 10px;
+      }
+      .actions {
+        display: flex;
+        gap: 10px;
+      }
+      .btn-save {
+        background: #28a745;
+        color: white;
+        flex: 2;
+        padding: 12px;
+        border: none;
+        border-radius: 6px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      #syncBtn {
+        border: none;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 4px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      @keyframes blink {
+        0% {
+          opacity: 1;
+          box-shadow: 0 0 5px #e67e22;
+        }
+        50% {
+          opacity: 0.7;
+          box-shadow: 0 0 20px #e67e22;
+        }
+        100% {
+          opacity: 1;
+          box-shadow: 0 0 5px #e67e22;
+        }
+      }
+      .btn-download {
+        background: #6c757d;
+        color: white;
+        flex: 1;
+        padding: 12px;
+        border: none;
+        border-radius: 6px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      .save-status {
+        font-size: 12px;
+        color: #28a745;
+        margin-bottom: 8px;
+        display: none;
+        font-weight: bold;
+      }
+      .dragging iframe {
+        pointer-events: none;
+      }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+    <style>
+      #editor-container {
+        flex-grow: 1;
+        border: 1px solid #333;
+        border-radius: 8px;
+        overflow: hidden; 
+        margin-bottom: 10px;
+      }
+      .line-modified { background: rgba(230,126,34,0.24) !important; }
+      .line-modified-inline { background: rgba(230,126,34,0.12) !important; }
+      /* 定位高亮：与已修改颜色区分，使用蓝色脉冲并带边框 */
+      .line-locate { background: rgba(0,123,255,0.14) !important; outline: 2px solid rgba(194, 21, 150, 0.9) !important; }
+      @keyframes locatePulse {
+        0% { box-shadow: 0 0 0 rgba(0,123,255,0.0); }
+        50% { box-shadow: 0 0 14px rgba(0,123,255,0.25); }
+        100% { box-shadow: 0 0 0 rgba(0,123,255,0.0); }
+      }
+      .line-locate { animation: locatePulse 1s ease; }
+    </style>
+  </head>
+  <body>
+    <div class="app-wrapper" id="container">
+      <div class="sidebar" id="sidebar">
+        <div class="toggle-trigger" onclick="toggleSidebar()" id="toggleBtn">
+          ◀
+        </div>
+        <div class="sidebar-content">
+          <h2>语言包提取器2.0</h2>
+          <p style="color: red;">
+           优化了编辑器，支持在编辑器中高亮定位和修改行。编辑器里用鼠标右键可以选择定位上一个/下一个编辑过的文案
+            <br />
+            <!-- <span style="color: red"
+              >无法成功预览修改内容，可以联系QQ:39936740</span
+            > -->
+          </p>
+          <input
+            type="text"
+            id="pageUrl"
+            class="input-box"
+            placeholder="例如: pt.vidnoz.com/precos.html"
+          />
+          <button class="btn-run" onclick="doExtract()">提取并预览</button>
+          <!-- <div style="display:flex;gap:8px;margin-top:8px">
+            <button id="prevEditBtn" title="定位上一个已编辑文案" style="flex:1;padding:8px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer;color:#007bff">定位上一个编辑过的文案</button>
+            <button id="nextEditBtn" title="定位下一个已编辑文案" style="flex:1;padding:8px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer;color:#6c757d">定位下一个编辑过的文案</button>
+          </div> -->
+
+          <div id="resultArea" class="result-wrapper" style="display: none">
+            <div id="saveStatus" class="save-status">✅ 已保存</div>
+            <div
+              id="errorHint"
+              class="error-hint"
+              style="
+                color: #dc3545;
+                font-size: 12px;
+                font-weight: bold;
+                margin-bottom: 8px;
+                display: none;
+              "
+            ></div>
+            <div id="editor-container"></div>
+            <textarea id="editor" spellcheck="false" style="display:none;white-space:pre-wrap;word-wrap:break-word;overflow-wrap:break-word"></textarea>
+            <div class="actions">
+              <button class="btn-save" onclick="saveData()">
+                上传本地服务器并刷新预览
+              </button>
+
+              <button
+                class="btn-download"
+                style="background: #e67e22"
+                onclick="downloadRemoteMaster()"
+              >
+                下载正式环境语言包
+              </button>
+
+              <button class="btn-download" onclick="downloadBackup()">
+                下载当前语言包
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="resizer" id="resizer"></div>
+
+      <div class="preview-area">
+        <div class="device-controls">
+          <button class="device-btn active" onclick="setDevice('pc', this)">
+            电脑端 (1920)
+          </button>
+          <button class="device-btn" onclick="setDevice('mobile', this)">
+            手机端 (375)
+          </button>
+        </div>
+        <div class="iframe-container">
+          <div id="deviceWrapper" class="view-pc">
+            <iframe id="webPreview" src="about:blank"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const PORT_MAP = {
+        pt: "8787",
+        jp: "9090",
+        fr: "8989",
+        ar: "9191",
+        de: "8585",
+        es: "8082",
+        it: "8888",
+        en: "8080",
+        tw: "9292",
+        kr: "9393",
+      };
+      let currentFileInfo = { lang: "", key: "" };
+      let isCollapsed = false;
+
+      // --- 设备切换逻辑 ---
+      function setDevice(type, btn) {
+        const wrapper = document.getElementById("deviceWrapper");
+        const btns = document.querySelectorAll(".device-btn");
+        btns.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        // 切换尺寸样式
+        wrapper.className = `view-${type}`;
+      }
+
+      // --- 侧边栏动态缩回 ---
+      function toggleSidebar() {
+        const sb = document.getElementById("sidebar");
+        const btn = document.getElementById("toggleBtn");
+        const rs = document.getElementById("resizer");
+        isCollapsed = !isCollapsed;
+        if (isCollapsed) {
+          sb.style.marginLeft = `-${sb.offsetWidth}px`;
+          rs.style.display = "none";
+          btn.innerText = "▶";
+        } else {
+          sb.style.marginLeft = "0px";
+          rs.style.display = "block";
+          btn.innerText = "◀";
+        }
+      }
+
+      // 拖拽逻辑修复版
+      const resizer = document.getElementById("resizer");
+      const sidebar = document.getElementById("sidebar");
+      const container = document.getElementById("container");
+      let isResizing = false;
+      resizer.addEventListener("mousedown", () => {
+        isResizing = true;
+        container.classList.add("dragging");
+      });
+      document.addEventListener("mousemove", (e) => {
+        if (!isResizing || isCollapsed) return;
+        if (e.clientX > 300 && e.clientX < 1000)
+          sidebar.style.width = `${e.clientX}px`;
+      });
+      document.addEventListener("mouseup", () => {
+        isResizing = false;
+        container.classList.remove("dragging");
+      });
+
+      // API 交互逻辑
+      function ensureProtocol(url) {
+        url = url.trim();
+        return /^https?:\/\//i.test(url) ? url : "https://" + url;
+      }
+
+      function getLocalPreviewUrl(remoteUrl) {
+        try {
+          const url = new URL(ensureProtocol(remoteUrl));
+          let lang =
+            url.hostname !== "www.vidnoz.com" &&
+            url.hostname !== "manage.vidnoz.com"
+              ? url.hostname.split(".")[0]
+              : "en";
+
+          let fullPath =
+            url.pathname === "/" || !url.pathname
+              ? "/index.html"
+              : url.pathname;
+
+          return `/preview_${lang}/preview${fullPath}`;
+        } catch (e) {
+          return remoteUrl;
+        }
+      }
+      // Editor access helpers (支持原有 textarea API，同时兼容 Monaco)
+      let monacoEditor = null;
+      let originalTextForHighlight = '';
+      function getEditorContent() {
+        try {
+          if (monacoEditor && monacoEditor.getValue) return monacoEditor.getValue();
+        } catch (e) {}
+        const ta = document.getElementById('editor');
+        return ta ? ta.value : '';
+      }
+      function setEditorContent(text) {
+        try {
+          if (monacoEditor && monacoEditor.setValue) monacoEditor.setValue(text);
+        } catch (e) {}
+        const ta = document.getElementById('editor');
+        if (ta) ta.value = text;
+        originalTextForHighlight = text;
+        // 重置编辑历史并更新按钮状态
+        try{ window.prevEdits = []; window.prevEditIndex = -1; }catch(e){}
+        try{ if(window.updatePrevNextButtons) window.updatePrevNextButtons(); }catch(e){}
+        
+      }
+
+      // 全局安全的按钮状态更新（可在 Monaco 未初始化前调用）
+      window.updatePrevNextButtons = window.updatePrevNextButtons || function(){
+        try{
+          const prevBtn = document.getElementById('prevEditBtn');
+          const nextBtn = document.getElementById('nextEditBtn');
+          if(!prevBtn || !nextBtn) return;
+          if(!window.prevEdits || !window.prevEdits.length){
+            prevBtn.disabled = true; nextBtn.disabled = true;
+            prevBtn.style.opacity = 0.6; nextBtn.style.opacity = 0.6;
+            prevBtn.style.color = '#6c757d'; nextBtn.style.color = '#6c757d';
+            return;
+          }
+          prevBtn.disabled = window.prevEditIndex <= 0;
+          nextBtn.disabled = window.prevEditIndex >= window.prevEdits.length-1;
+          prevBtn.style.opacity = prevBtn.disabled?0.6:1; nextBtn.style.opacity = nextBtn.disabled?0.6:1;
+          prevBtn.style.color = prevBtn.disabled? '#6c757d':'#007bff';
+          nextBtn.style.color = nextBtn.disabled? '#6c757d':'#007bff';
+        }catch(e){}
+      };
+
+      // 如果用户回退到 textarea 编辑（兼容场景），添加输入监听以提示已修改
+      (function(){
+        const ta = document.getElementById('editor');
+        if(!ta) return;
+        const base = ta.value;
+        ta.addEventListener('input', ()=>{
+          if (ta.value !== base) {
+            ta.style.background = 'rgba(230,126,34,0.06)';
+          } else {
+            ta.style.background = '';
+          }
+        });
+      })();
+
+      // 用于 Monaco 的行高亮（传入从1开始的行号）
+      let currentLineDecorations = [];
+      // 用于标记用户已修改的行
+      let modifiedLineDecorations = [];
+      // 比较原始文本和当前文本，生成行装饰（整个行背景变色）
+      function updateModifiedDecorations() {
+        if (!monacoEditor) return;
+        const model = monacoEditor.getModel();
+        if (!model) return;
+        const cur = model.getValue().split('\n');
+        const ori = (originalTextForHighlight || '').split('\n');
+        const decs = [];
+        for (let i = 0; i < Math.max(cur.length, ori.length); i++) {
+          const a = (cur[i] || '').replace(/\s+$/,'');
+          const b = (ori[i] || '').replace(/\s+$/,'');
+          if (a !== b) {
+            decs.push({ range: new monaco.Range(i + 1, 1, i + 1, 1), options: { isWholeLine: true, className: 'line-modified', inlineClassName: 'line-modified-inline' } });
+          }
+        }
+        modifiedLineDecorations = monacoEditor.deltaDecorations(modifiedLineDecorations, decs);
+      }
+      function highlightLineInMonaco(lineNumber) {
+        if (!monacoEditor) return;
+        const model = monacoEditor.getModel();
+        if (!model) return;
+        const range = new monaco.Range(lineNumber, 1, lineNumber, 1);
+        // 为了保证定位颜色与“已修改”颜色不混合，先移除已修改装饰（短暂）
+        let savedModified = modifiedLineDecorations.slice();
+        try { modifiedLineDecorations = monacoEditor.deltaDecorations(modifiedLineDecorations, []); } catch(e) {}
+
+        // 使用专门的定位样式
+        currentLineDecorations = monacoEditor.deltaDecorations(currentLineDecorations, [
+          { range, options: { isWholeLine: true, className: 'line-locate' } }
+        ]);
+        monacoEditor.revealLineInCenter(lineNumber);
+
+        // 临时显示，1.2s 后移除定位高亮并恢复已修改装饰
+        setTimeout(()=>{
+          if(monacoEditor) currentLineDecorations = monacoEditor.deltaDecorations(currentLineDecorations, []);
+          // 恢复修改装饰
+          try { updateModifiedDecorations(); } catch(e) {}
+        }, 1200);
+      }
+
+      async function saveData() {
+        const pageUrl = document.getElementById("pageUrl").value.trim();
+        const content = getEditorContent();
+        const saveStatus = document.getElementById("saveStatus");
+        const errorHint = document.getElementById("errorHint");
+
+        if (!pageUrl) {
+          alert("请输入页面地址后再保存");
+          return;
+        }
+
+        const jsonPart = content
+          .replace(/\/\* --- start --- \*\//g, "")
+          .replace(/\/\* --- END --- \*\//g, "")
+          .trim();
+
+        // 2. 校验 JSON 格式是否正确
+        try {
+          JSON.parse(jsonPart);
+          editor.style.borderColor = ""; // 恢复正常颜色
+          if (errorHint) errorHint.style.display = "none";
+        } catch (e) {
+          console.error("JSON 校验失败:", e);
+          alert(
+            "保存失败：JSON 格式错误，请检查括号、逗号是否闭合。建议使用 Ctrl+Z 撤销之前的误删。"
+          );
+          if (errorHint) {
+            errorHint.innerText = "❌ JSON 格式错误";
+            errorHint.style.display = "block";
+          }
+          return;
+        }
+
+        // 3. 发送请求到后端 api/save
+        try {
+          const res = await fetch("/api/save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pageUrl: ensureProtocol(pageUrl), content }),
+          });
+
+          const data = await res.json();
+
+          if (data.success) {
+            showNotice(" 保存成功，正在刷新预览...", "success");
+            saveStatus.style.display = "block";
+
+            // reset baseline for modified decorations
+            try{
+              originalTextForHighlight = getEditorContent();
+              if (monacoEditor) updateModifiedDecorations();
+            }catch(e){}
+
+            
+
+            const iframe = document.getElementById("webPreview");
+            const baseUrl = iframe.src.split("?")[0];
+
+            setTimeout(() => {
+              iframe.src = `${baseUrl}?r2=${Math.random()}`;
+              saveStatus.style.display = "none";
+            }, 800);
+          } else {
+            alert("保存失败: " + (data.error || "未知错误"));
+          }
+        } catch (e) {
+          console.error("保存请求异常:", e);
+          alert("保存请求失败，请确认后端 getText.js 是否正在运行。");
+        }
+  }
+
+      function locateKeyInEditor(key, isSync = false) {
+        const content = getEditorContent();
+
+        const cleanStr = (str) => {
+          return str
+            .replace(/\\"/g, '"') // 还原转义双引号
+            .replace(/\\n/g, "")
+            .replace(/<\/?[^>]+(>|$)/g, "") // 剥离HTML标签
+            .trim();
+        };
+
+        const targetClean = cleanStr(key);
+        let index = -1;
+        let selEnd = -1;
+
+        // 1. 精确匹配 Key
+        index = content.indexOf(`"${key}":`);
+        if (index === -1) index = content.indexOf(`"${key}"`);
+
+        // 2. 模糊匹配内容（处理转义符和HTML差异）
+        if (index === -1) {
+          const lines = content.split("\n");
+          let currentPos = 0;
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (cleanStr(line).includes(targetClean) && line.includes(":")) {
+              index = currentPos;
+              selEnd = currentPos + line.length;
+              break;
+            }
+            currentPos += line.length + 1;
+          }
+        }
+
+        if (index !== -1) {
+          // Monaco 优先逻辑
+          if (monacoEditor) {
+            const model = monacoEditor.getModel();
+            const pos = model.getPositionAt(index);
+            const endPos = model.getPositionAt(selEnd === -1 ? index + 1 : selEnd);
+            monacoEditor.revealPositionInCenter(pos);
+            monacoEditor.setSelection(new monaco.Selection(pos.lineNumber, pos.column, endPos.lineNumber, endPos.column));
+            if (isSync) {
+              highlightLineInMonaco(pos.lineNumber);
+            }
+            monacoEditor.focus();
+            return;
+          }
+
+          // 兼容 textarea 的老逻辑
+          const ta = document.getElementById("editor");
+          if (!ta) return;
+          if (selEnd === -1) {
+            const lineEnd = content.indexOf("\n", index);
+            selEnd = lineEnd !== -1 ? lineEnd : index + 20;
+          }
+          ta.focus();
+          ta.setSelectionRange(index, selEnd);
+
+          const ghost = document.createElement("div");
+          const style = window.getComputedStyle(ta);
+          [
+            "padding",
+            "fontSize",
+            "fontFamily",
+            "lineHeight",
+            "width",
+            "boxSizing",
+            "whiteSpace",
+            "wordWrap",
+          ].forEach((p) => (ghost.style[p] = style[p]));
+          ghost.style.position = "absolute";
+          ghost.style.visibility = "hidden";
+          ghost.style.left = "-9999px";
+          ghost.textContent = content.substring(0, index);
+          const marker = document.createElement("span");
+          marker.textContent = content.substring(index, selEnd);
+          ghost.appendChild(marker);
+          document.body.appendChild(ghost);
+
+          ta.scrollTo({ top: Math.max(0, marker.offsetTop - ta.clientHeight / 2), behavior: "smooth" });
+
+          if (isSync) {
+            const rect = ta.getBoundingClientRect();
+            const overlay = document.createElement("div");
+            Object.assign(overlay.style, {
+              position: "fixed",
+              left: marker.offsetLeft + rect.left + "px",
+              top: marker.offsetTop - ta.scrollTop + rect.top + "px",
+              width: marker.offsetWidth + 8 + "px",
+              height: marker.offsetHeight + 4 + "px",
+              backgroundColor: "rgba(0, 255, 127, 0.3)",
+              border: "1px solid #00ff7f",
+              zIndex: 10000,
+              pointerEvents: "none",
+              transition: "opacity 0.6s",
+            });
+            document.body.appendChild(overlay);
+            setTimeout(() => {
+              overlay.style.opacity = "0";
+              setTimeout(() => overlay.remove(), 600);
+            }, 1000);
+          }
+          document.body.removeChild(ghost);
+        }
+      }
+      // 2. 提取并预览逻辑
+      async function doExtract() {
+        let pageUrl = document.getElementById("pageUrl").value.trim();
+        if (!pageUrl) return;
+        pageUrl = ensureProtocol(pageUrl);
+
+        // --- 步骤 A: 处理右侧预览 (同源反向代理) ---
+        const iframe = document.getElementById("webPreview");
+        iframe.src = getLocalPreviewUrl(pageUrl);
+
+        // 绑定 onload 监听（因为同源，可以跨 iframe 操作 DOM 实现非注入定位）
+        iframe.onload = function () {
+          try {
+            const doc = iframe.contentDocument || iframe.contentWindow.document;
+            // 绑定 Alt+点击
+            doc.addEventListener(
+              "click",
+              (e) => {
+                if (e.altKey) {
+                  e.preventDefault();
+                  e.stopPropagation();
+
+                  const target = e.target;
+                  let key = target.getAttribute("data-i18n");
+
+                  if (!key) {
+                    if (target.tagName.toLowerCase() === "img") {
+                      key = target.getAttribute("alt") || "";
+                    } else {
+                      key = target.innerText.trim();
+                    }
+                  }
+                  // -----------------------
+
+                  if (key) {
+                    locateKeyInEditor(key, true);
+                  }
+                }
+              },
+              true
+            );
+
+            // 注入鼠标经过的虚线样式
+            const style = doc.createElement("style");
+            style.innerHTML =
+              "*:hover { outline: 1px dashed #007bff !important; cursor: help !important; }";
+            doc.head.appendChild(style);
+
+            doc.addEventListener(
+              "contextmenu",
+              (e) => {
+                if (e.altKey) {
+                  e.preventDefault();
+                  const target = e.target;
+
+                  // 统一获取 key 的逻辑
+                  const key =
+                    target.getAttribute("data-i18n") ||
+                    (target.tagName.toLowerCase() === "img"
+                      ? target.getAttribute("alt")
+                      : target.innerText.trim());
+
+                  if (key) {
+                    showInlineEditor(target, key);
+                  }
+                }
+              },
+              true
+            );
+          } catch (err) {
+            console.error("跨域拦截或代理配置错误，无法绑定定位功能", err);
+          }
+        };
+
+        try {
+          const res = await fetch("/api/extract-by-url", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pageUrl }),
+          });
+
+          const data = await res.json();
+
+          if (res.ok) {
+            // put content into Monaco (or fallback textarea)
+            try { setEditorContent(data.content); } catch (e) { document.getElementById("editor").value = data.content; }
+            document.getElementById("resultArea").style.display = "flex";
+
+            currentFileInfo = {
+              lang: data.info.langCode,
+              key: data.info.topLevelKey,
+            };
+
+            
+
+            console.log(data.syncStatus, 33333333333333333);
+
+            if (data.syncStatus === "overwritten") {
+              showNotice(` 检测到远程更新，已同步最新文案`, "success");
+            } else if (data.syncStatus === "synced") {
+              showNotice(` 语言包跟正式环境一致`, "info");
+            } else if (data.syncStatus === "failed") {
+              showNotice(
+                ` Git 同步失败，当前为本地旧数据，请联系研发`,
+                "error"
+              );
+            }
+          } else {
+            alert("数据提取失败: " + data.error);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      function downloadBackup() {
+        const blob = new Blob([getEditorContent()], { type: "application/json" });
+        const a = document.createElement("a");
+        a.href = window.URL.createObjectURL(blob);
+        a.download = `${currentFileInfo.lang}_${currentFileInfo.key}.json`;
+        a.click();
+      }
+
+      function showInlineEditor(el, key) {
+        console.log(el,key,22222)
+        // 1. 创建悬浮输入框
+        const input = document.createElement("textarea");
+        const rect = el.getBoundingClientRect();
+
+        Object.assign(input.style, {
+          position: "fixed",
+          left: rect.left + "px",
+          top: rect.top + "px",
+          width: rect.width + "px",
+          height: rect.height + "px",
+          zIndex: 10000,
+          fontSize: window.getComputedStyle(el).fontSize,
+          padding: "5px",
+          border: "2px solid #007bff",
+          borderRadius: "4px",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+        });
+
+        input.dataset.targetKey = key;
+        console.log()
+        input.value = el.innerText.trim();
+        el.ownerDocument.body.appendChild(input);
+        input.focus();
+
+        // 3. 统一处理同步逻辑的函数
+        const handleSync = () => {
+          const newValue = input.value;
+          const targetKey = input.dataset.targetKey;
+
+          // 预览区即时生效
+          el.innerText = newValue;
+
+          syncToJSONEditor(targetKey, newValue);
+
+          input.remove();
+        };
+
+        input.onblur = handleSync;
+
+  // 保证内联编辑框也自动换行并易读.
+  input.style.whiteSpace = 'pre-wrap';
+  input.style.wordWrap = 'break-word';
+
+        input.onkeydown = (e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            input.blur();
+          }
+          if (e.key === "Escape") {
+            input.onblur = null;
+            input.remove();
+          }
+        };
+      }
+
+      function syncToJSONEditor(key, newValue, origDisplayValue) {
+  const esc = (s) => s.replace(/[\\^$.*+?()[\]{}|\\]/g, "\\$&");
+  origDisplayValue = typeof origDisplayValue !== 'undefined' ? origDisplayValue : null;
+
+  const cleanStr = (str) => {
+    return str
+      .replace(/\\"/g, '"')
+      .replace(/\\n/g, "")
+      .replace(/<\/?[^>]+(>|$)/g, "")
+      .trim();
+  };
+
+  function findBestKey(content, targetKey) {
+   
+    const lines = content.split("\n");
+    const cleanedTarget = cleanStr(targetKey);
+    for (let line of lines) {
+      console.log(cleanStr(line),321,cleanedTarget)
+      if (cleanStr(line).includes(cleanedTarget) && line.includes(":")) {
+        const found = line.match(/"([^"]+)"\s*:/);
+        if (found) return found[1];
+      }
+    }
+    return targetKey;
+  }
+
+  function mergeNewValueWithHTML(oldFullValue, newPlainText) {
+    const hasHTML = /<[^>]+>/.test(oldFullValue);
+    if (!hasHTML) return newPlainText;
+
+    let tempDiv = document.createElement('div');
+    tempDiv.innerHTML = oldFullValue;
+    
+    if (tempDiv.children.length > 0) {
+      let textNodes = [];
+      let walk = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT, null, false);
+      let node;
+      while(node = walk.nextNode()) textNodes.push(node);
+      
+      if (textNodes.length === 1) {
+        textNodes[0].nodeValue = newPlainText;
+        return tempDiv.innerHTML;
+      }
+    }
+    return newPlainText;
+  }
+
+  try {
+    if (monacoEditor && monacoEditor.getValue) {
+      const model = monacoEditor.getModel();
+      const cur = model.getValue();
+      let keyToUse = findBestKey(cur, key);
+
+      const jsonValuePattern = /"([^"\\]*(?:\\.[^"\\]*)*)"/.source;
+      const regex = new RegExp(`("${esc(keyToUse)}"[\\s]*:[\\s]*)` + jsonValuePattern);
+      const m = regex.exec(cur);
+
+      if (m) {
+        const oldFullValue = m[2].replace(/\\"/g, '"');
+        const finalValue = mergeNewValueWithHTML(oldFullValue, newValue);
+
+        const prefixLen = m[1].length + 1;
+        const startOffset = m.index + prefixLen;
+        const endOffset = startOffset + m[2].length;
+        const startPos = model.getPositionAt(startOffset);
+        const endPos = model.getPositionAt(endOffset);
+
+        const escapedValue = finalValue.replace(/"/g, '\\"');
+
+        model.pushEditOperations([], [
+          {
+            range: new monaco.Range(startPos.lineNumber, startPos.column, endPos.lineNumber, endPos.column),
+            text: escapedValue,
+          },
+        ], () => null);
+
+        try {
+          window.prevEdits = window.prevEdits || [];
+          window.prevEdits.push({ 
+            line: startPos.lineNumber, 
+            key: keyToUse,
+            excerpt: (model.getLineContent(startPos.lineNumber)||'').trim().slice(0,120), 
+            ts: Date.now() 
+          });
+          if (window.prevEdits.length > 200) window.prevEdits.shift();
+          window.prevEditIndex = window.prevEdits.length - 1;
+        } catch (e) {}
+
+        try { locateKeyInEditor(keyToUse, true); } catch (e) {}
+        try { if(window.updatePrevNextButtons) window.updatePrevNextButtons(); } catch(e) {}
+        return;
+      }
+    }
+  } catch (e) {
+    console.error('syncToJSONEditor failed:', e);
+  }
+
+  const editor = document.getElementById("editor");
+  if (editor) {
+    let content = editor.value;
+    let keyToUse = findBestKey(content, key);
+    const jsonValuePattern = /"([^"\\]*(?:\\.[^"\\]*)*)"/.source;
+    const regex = new RegExp(`("${esc(keyToUse)}"[\\s]*:[\\s]*)` + jsonValuePattern);
+    const m = regex.exec(content);
+    if (m) {
+      const oldFullValue = m[2].replace(/\\"/g, '"');
+      const finalValue = mergeNewValueWithHTML(oldFullValue, newValue);
+      const escapedValue = finalValue.replace(/"/g, '\\"');
+      const prefix = content.substring(0, m.index + m[1].length + 1);
+      const suffix = content.substring(m.index + m[0].length - 1);
+      editor.value = prefix + escapedValue + suffix;
+      try { locateKeyInEditor(keyToUse, true); } catch(e){}
+    }
+  }
+}
+
+      
+
+      function showNotice(msg, type = "info") {
+        const notice = document.createElement("div");
+        notice.innerText = msg;
+        Object.assign(notice.style, {
+          position: "fixed",
+          top: "50px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          padding: "12px 24px",
+          borderRadius: "8px",
+          backgroundColor: type === "success" ? "#2ecc71" : "#007bff",
+          color: "white",
+          zIndex: "20000",
+          boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
+          fontWeight: "bold",
+          transition: "all 0.4s ease",
+        });
+        document.body.appendChild(notice);
+
+        setTimeout(() => {
+          notice.style.opacity = "0";
+          notice.style.transform = "translateY(-20px)";
+          setTimeout(() => notice.remove(), 400);
+        }, 3000);
+      }
+
+      async function downloadRemoteMaster() {
+        const pageUrl = document.getElementById("pageUrl").value.trim();
+        if (!pageUrl) {
+          alert("请先输入页面地址");
+          return;
+        }
+
+        try {
+          // 1. 请求后端获取远程 Master 的数据
+          const res = await fetch("/api/extract-by-url", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pageUrl: ensureProtocol(pageUrl) }),
+          });
+
+          const data = await res.json();
+
+          if (data.success && data.syncStatus !== "failed") {
+            const remoteContent = data.content
+              .replace(/\/\* --- start --- \*\//g, "")
+              .replace(/\/\* --- END --- \*\//g, "")
+              .trim();
+
+            const blob = new Blob([remoteContent], {
+              type: "application/json",
+            });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `REMOTE_MASTER_${currentFileInfo.lang}_${currentFileInfo.key}.json`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+
+            showNotice("远程 Master 文件已准备好下载", "success");
+          } else {
+            alert("获取远程数据失败，请检查 Git 配置或网络");
+          }
+        } catch (e) {
+          console.error(e);
+          alert("下载请求失败");
+        }
+      }
+    </script>
+    <script>
+      // Monaco 初始化（保持现有文案和布局不变）
+      (function(){
+        if (typeof require === 'undefined') return; // loader not ready
+        try{
+          require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
+          require(['vs/editor/editor.main'], function(){
+            const container = document.getElementById('editor-container');
+            if(!container) return;
+            monacoEditor = monaco.editor.create(container, {
+              value: document.getElementById('editor') ? document.getElementById('editor').value : '{\n  "index": {}\n}',
+              language: 'json',
+              theme: 'vs-dark',
+              automaticLayout: true,
+              minimap: { enabled: false },
+              wordWrap: 'on',
+              wrappingStrategy: 'advanced',
+              wrappingIndent: 'same'
+            });
+            // 保存初始文本用于对比高亮
+            originalTextForHighlight = monacoEditor.getValue();
+
+            // 编辑历史：记录用户修改过的行（用于“定位上一个/下一个已编辑文案”）
+            window.prevEdits = window.prevEdits || [];
+            if (typeof window.prevEditIndex === 'undefined' || window.prevEditIndex === null) {
+              window.prevEditIndex = -1; // 指向当前历史位置，-1 表示尚未导航
+            }
+
+            // 监听内容变化：记录变更位置、清除定位高亮并更新“已修改行”的装饰
+            monacoEditor.onDidChangeModelContent((e)=>{
+              try{
+                // 记录每一处 change 的起始行
+                const model = monacoEditor.getModel();
+                if (e && e.changes && e.changes.length) {
+                  e.changes.forEach(ch => {
+                    const lineNo = ch.range.startLineNumber;
+                    const lineContent = model.getLineContent(lineNo) || '';
+                    const excerpt = lineContent.trim().slice(0, 120);
+                    const foundKeyMatch = lineContent.match(/"([^\"]+)"\s*:/);
+                    const keyName = foundKeyMatch ? foundKeyMatch[1] : null;
+                    const last = window.prevEdits.length ? window.prevEdits[window.prevEdits.length-1] : null;
+                    if (!last || last.line !== lineNo || (keyName && last.key !== keyName)) {
+                      // 新增历史时重置 index 到末尾
+                      const entry = { line: lineNo, excerpt, ts: Date.now() };
+                      if (keyName) entry.key = keyName;
+                      window.prevEdits.push(entry);
+                      if (window.prevEdits.length > 200) window.prevEdits.shift();
+                      window.prevEditIndex = window.prevEdits.length - 1;
+                    }
+                  });
+                }
+
+                // 如果没有变更历史，但内容已和 baseline 不同，做一次简易扫描（兼容某些编辑器行为）
+                if ((!window.prevEdits || !window.prevEdits.length) && originalTextForHighlight) {
+                  const cur = model.getValue().split('\n');
+                  const ori = (originalTextForHighlight || '').split('\n');
+                  for (let i = 0; i < Math.max(cur.length, ori.length); i++) {
+                    const a = (cur[i] || '').replace(/\s+$/,'');
+                    const b = (ori[i] || '').replace(/\s+$/,'');
+                    if (a !== b) {
+                      const lineContent = cur[i] || '';
+                      const excerpt = lineContent.trim().slice(0,120);
+                      const foundKeyMatch = lineContent.match(/"([^\"]+)"\s*:/);
+                      const entry = { line: i+1, excerpt, ts: Date.now() };
+                      if (foundKeyMatch) entry.key = foundKeyMatch[1];
+                      window.prevEdits.push(entry);
+                    }
+                  }
+                  if (window.prevEdits.length) window.prevEditIndex = window.prevEdits.length - 1;
+                }
+              }catch(err){console.error(err)}
+
+              // 清除定位高亮（定位高亮为临时焦点）
+              try{ currentLineDecorations = monacoEditor.deltaDecorations(currentLineDecorations, []); }catch(e){}
+              // 更新修改行装饰
+              try{ updateModifiedDecorations(); }catch(ex){}
+              try{ updatePrevNextButtons(); }catch(ex){}
+            });
+
+            // 添加右键菜单项（中文） - 定位上一个已编辑文案 & 定位下一个已编辑文案
+            monacoEditor.addAction({
+              id: 'jumpPrevEdit',
+              label: '定位上一个修改',
+              contextMenuGroupId: 'navigation',
+              contextMenuOrder: 1,
+              run: function(ed) { jumpToPrevEdit(ed); }
+            });
+            monacoEditor.addAction({
+              id: 'jumpNextEdit',
+              label: '定位下一个修改',
+              contextMenuGroupId: 'navigation',
+              contextMenuOrder: 2,
+              run: function(ed) { jumpToNextEdit(ed); }
+            });
+
+            // 按钮绑定
+            const prevBtn = document.getElementById('prevEditBtn');
+            const nextBtn = document.getElementById('nextEditBtn');
+            function updatePrevNextButtons(){
+              if(!window.prevEdits || !window.prevEdits.length){ prevBtn.disabled=true; nextBtn.disabled=true; prevBtn.style.opacity=0.6; nextBtn.style.opacity=0.6; prevBtn.style.color='#6c757d'; nextBtn.style.color='#6c757d'; return; }
+              prevBtn.disabled = window.prevEditIndex <= 0;
+              nextBtn.disabled = window.prevEditIndex >= window.prevEdits.length-1;
+              prevBtn.style.opacity = prevBtn.disabled?0.6:1; nextBtn.style.opacity = nextBtn.disabled?0.6:1;
+              prevBtn.style.color = prevBtn.disabled?'#6c757d':'#007bff';
+              nextBtn.style.color = nextBtn.disabled?'#6c757d':'#007bff';
+            }
+            prevBtn.onclick = ()=>{ jumpToPrevEdit(monacoEditor); };
+            nextBtn.onclick = ()=>{ jumpToNextEdit(monacoEditor); };
+
+            function jumpToPrevEdit(ed){
+              if(!window.prevEdits || !window.prevEdits.length) return showNotice('无编辑历史','info');
+              if(window.prevEditIndex <= 0) return; // 已到最前
+              window.prevEditIndex--;
+                const item = window.prevEdits[window.prevEditIndex];
+                if (item.key) {
+                  locateKeyInEditor(item.key, true);
+                } else {
+                  const pos = { lineNumber: item.line, column: 1 };
+                  ed.revealPositionInCenter(pos);
+                  ed.setSelection(new monaco.Selection(pos.lineNumber, pos.column, pos.lineNumber, 1));
+                  highlightLineInMonaco(pos.lineNumber);
+                }
+              updatePrevNextButtons();
+            }
+
+            function jumpToNextEdit(ed){
+              if(!window.prevEdits || !window.prevEdits.length) return showNotice('无编辑历史','info');
+              if(window.prevEditIndex >= window.prevEdits.length-1) return; // 已到最后
+              window.prevEditIndex++;
+              const item = window.prevEdits[window.prevEditIndex];
+              if (item.key) {
+                locateKeyInEditor(item.key, true);
+              } else {
+                const pos = { lineNumber: item.line, column: 1 };
+                ed.revealPositionInCenter(pos);
+                ed.setSelection(new monaco.Selection(pos.lineNumber, pos.column, pos.lineNumber, 1));
+                highlightLineInMonaco(pos.lineNumber);
+              }
+              updatePrevNextButtons();
+            }
+
+            // 将跳转函数和 editor 暴露到全局，便于页面其他安全绑定调用
+            try{ window.jumpToPrevEdit = jumpToPrevEdit; window.jumpToNextEdit = jumpToNextEdit; window.monacoEditor = monacoEditor; }catch(e){}
+
+            // 每次修改完刷新按钮状态
+            // 暴露给全局，以便 setEditorContent 等可调用
+            window.updatePrevNextButtons = updatePrevNextButtons;
+            setTimeout(()=>{ updatePrevNextButtons(); }, 300);
+          });
+        }catch(e){console.error('monaco init failed', e)}
+      })();
+    </script>
+    <script>
+      // 安全绑定：确保 prev/next 按钮存在并保持状态更新
+      (function(){
+        function safeUpdate(){ try{ if(window.updatePrevNextButtons) window.updatePrevNextButtons(); }catch(e){} }
+        // 绑定按钮（如果脚本先运行）
+        const prev = document.getElementById('prevEditBtn');
+        const next = document.getElementById('nextEditBtn');
+        if(prev){ prev.addEventListener('click', ()=>{ try{ if(window.jumpToPrevEdit) window.jumpToPrevEdit(monacoEditor); else safeUpdate(); }catch(e){} }); }
+        if(next){ next.addEventListener('click', ()=>{ try{ if(window.jumpToNextEdit) window.jumpToNextEdit(monacoEditor); else safeUpdate(); }catch(e){} }); }
+        // call once at load
+        setTimeout(safeUpdate, 600);
+        // ensure doExtract triggers update when it finishes - monkey patch if defined
+        try{
+          const orig = window.doExtract;
+          if(orig && typeof orig === 'function'){
+            window.doExtract = async function(){ const r = await orig.apply(this, arguments); try{ safeUpdate(); }catch(e){} return r; };
+          }
+        }catch(e){}
+      })();
+    </script>
+  </body>
+</html>
