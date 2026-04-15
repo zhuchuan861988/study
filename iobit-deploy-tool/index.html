@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>iobit自动部署工具</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+    
+    .section {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e0e0e0;
+      color: #333;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+      color: #555;
+    }
+    
+    input, textarea, select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #4CAF50;
+    }
+    
+    button {
+      padding: 8px 16px;
+      margin-right: 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+    
+    button.btn-primary {
+      background: #4CAF50;
+      color: white;
+    }
+    
+    button.btn-primary:hover {
+      background: #45a049;
+    }
+    
+    button.btn-secondary {
+      background: #2196F3;
+      color: white;
+    }
+    
+    button.btn-secondary:hover {
+      background: #0b7dda;
+    }
+    
+    button.btn-warning {
+      background: #FF9800;
+      color: white;
+    }
+    
+    button.btn-warning:hover {
+      background: #e68900;
+    }
+    
+    button.btn-danger {
+      background: #f44336;
+      color: white;
+    }
+    
+    button.btn-danger:hover {
+      background: #da190b;
+    }
+    
+    .repo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 15px;
+      margin-top: 10px;
+    }
+    
+    .repo-card {
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 12px;
+      background: #fafafa;
+    }
+    
+    .repo-name {
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #333;
+    }
+    
+    .repo-status {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    
+    .repo-commit-input {
+      width: 100%;
+      padding: 6px;
+      font-size: 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    .file-list {
+      max-height: 500px;
+      overflow-y: auto;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+    
+    .file-item {
+      padding: 8px 12px;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .file-item:hover {
+      background: #f9f9f9;
+    }
+    
+    .file-item input[type="checkbox"] {
+      width: 20px;
+      margin: 0;
+    }
+    
+    .file-path {
+      flex: 1;
+      font-family: monospace;
+      font-size: 12px;
+      color: #333;
+      word-break: break-all;
+    }
+    
+    .file-repo {
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+      background: #e3f2fd;
+      color: #1976d2;
+      min-width: 100px;
+    }
+    
+    .file-custom {
+      background: #fff3e0;
+      color: #e65100;
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 4px;
+      background: #e0e0e0;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: #4CAF50;
+      transition: width 0.3s;
+    }
+    
+    .two-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    
+    .log-area {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 10px;
+      border-radius: 4px;
+      height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    
+    .log-entry {
+      padding: 2px 0;
+      border-bottom: 1px solid #333;
+    }
+    
+    .log-error { color: #f48771; }
+    .log-success { color: #6a9955; }
+    .log-info { color: #9cdcfe; }
+    
+    .button-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+    
+    .stats {
+      display: inline-block;
+      margin-left: 10px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: #e0e0e0;
+      font-size: 12px;
+    }
+    
+    .add-file-panel {
+      margin-top: 15px;
+      padding: 15px;
+      background: #f9f9f9;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+    }
+    
+    .inline-form {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    .inline-form select, .inline-form input {
+      width: auto;
+      flex: 1;
+      min-width: 150px;
+    }
+    
+    .path-mapping-panel {
+      margin-top: 15px;
+      padding: 15px;
+      background: #f0f7ff;
+      border-radius: 8px;
+      border: 1px solid #b3d4fc;
+    }
+    
+    .path-mapping-item {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+    
+    .path-mapping-item span {
+      font-family: monospace;
+      font-size: 12px;
+    }
+    
+    .edit-mode-tools {
+      margin-bottom: 10px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    
+    .file-editor {
+      margin-top: 10px;
+      border-top: 1px solid #e0e0e0;
+      padding-top: 10px;
+    }
+    
+    .file-content-input {
+      width: 100%;
+      min-height: 200px;
+      font-family: monospace;
+      font-size: 12px;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    .tree-view {
+      font-family: monospace;
+      font-size: 12px;
+      margin-top: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      padding: 8px;
+    }
+    
+    .tree-item {
+      cursor: pointer;
+      padding: 2px 0;
+      user-select: none;
+    }
+    
+    .tree-item:hover {
+      background: #f0f0f0;
+    }
+    
+    .tree-item.directory {
+      font-weight: 500;
+      color: #2196F3;
+    }
+    
+    .tree-item.file {
+      color: #4CAF50;
+    }
+    
+    .tree-children {
+      margin-left: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 配置区域 -->
+    <div class="section">
+      <div class="section-title">📁 项目配置</div>
+      <div class="two-columns">
+    <div>
+      <div class="form-group">
+        <label>当前项目：</label>
+        <select id="project-select" style="width: 70%; display: inline-block; margin-right: 10px;">
+          <option value="">-- 选择项目 --</option>
+        </select>
+        <input type="text" id="new-project-name" placeholder="新项目名称" style="width: 40%; margin-top: 10px;">
+      </div>
+      <div class="button-group">
+        <button class="btn-primary" id="save-project-btn">💾 保存当前配置到项目</button>
+        <button class="btn-secondary" id="load-project-btn">📂 加载选中项目</button>
+        <button class="btn-danger" id="delete-project-btn">🗑️ 删除选中项目</button>
+        <button class="btn-warning" id="clone-all-btn">📥 克隆/更新所有仓库</button>
+      </div>
+    </div>
+    <div>
+      <div class="form-group">
+        <label>项目说明：</label>
+        <textarea id="project-desc" rows="3" placeholder="项目描述信息..."></textarea>
+      </div>
+    </div>
+  </div>
+      <div class="two-columns">
+        <div>
+          <div class="form-group">
+            <label>基础存放路径：</label>
+            <input type="text" id="base-path" placeholder="例如：F:\vidnoz-flex-website">
+          </div>
+          <div class="form-group">
+            <label>FTP/SFTP 类型：</label>
+            <select id="ftp-type">
+              <option value="ftp">FTP (File Transfer Protocol)</option>
+              <option value="sftp">SFTP (SSH File Transfer Protocol)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>服务器地址：</label>
+            <input type="text" id="ftp-host" placeholder="例如：192.168.1.100">
+          </div>
+          <div class="form-group">
+            <label>端口：</label>
+            <input type="text" id="ftp-port" placeholder="SFTP:22 / FTP:21" value="21">
+          </div>
+          <div class="form-group">
+            <label>用户名：</label>
+            <input type="text" id="ftp-user" placeholder="username">
+          </div>
+          <div class="form-group">
+            <label>密码：</label>
+            <input type="password" id="ftp-password" placeholder="password">
+          </div>
+        </div>
+        <div>
+          <div class="form-group">
+            <label>仓库配置（JSON格式，可直接修改）：</label>
+            <textarea id="repos-config" rows="8" style="font-family: monospace; font-size: 12px;"></textarea>
+            </div>
+            <div class="form-group">
+            <label>路径映射配置（本地仓库 -> FTP路径）：</label>
+            <textarea id="path-mapping" rows="8" style="font-family: monospace; font-size: 12px;"></textarea>
+            </div>
+        </div>
+      </div>
+      <div class="button-group">
+        <!-- <button class="btn-primary" id="save-config-btn">💾 保存配置</button> -->
+        <!-- <button class="btn-secondary" id="load-config-btn">📂 加载配置</button> -->
+        
+      </div>
+    </div>
+
+    <!-- 仓库状态区域 -->
+    <div class="section">
+      <div class="section-title">📦 仓库列表</div>
+      <div id="repo-list" class="repo-grid">
+        <div style="text-align: center; padding: 20px; color: #999; grid-column: 1/-1;">请先加载配置，然后点击"克隆/更新所有仓库"</div>
+      </div>
+    </div>
+
+    <!-- Git操作区域 -->
+    <div class="section">
+      <div class="section-title">🔍 Git变更检测</div>
+      <div class="button-group">
+        <button class="btn-primary" id="scan-with-commit-btn">📝 扫描有Commit ID的仓库</button>
+      </div>
+      <div class="form-group" style="margin-top: 10px;">
+        <label>💡 说明：只扫描已填写Commit ID的仓库，未填写的将被跳过。Dev目录下的文件会自动排除。</label>
+      </div>
+    </div>
+
+    <!-- 文件列表区域 -->
+<div class="section">
+  <div class="section-title">
+    📄 文件列表（JSON格式，可编辑）
+    <span id="file-count" class="stats">0个文件</span>
+  </div>
+  
+  <div class="form-group">
+    <label>JSON格式文件列表（可直接编辑）：</label>
+    <textarea id="file-json-editor" rows="15" style="font-family: monospace; font-size: 12px; width: 100%;" placeholder='{
+  "pc.makevideoclip.com": [
+    "templates/new-template/js/ai-cartoon-generator.js"
+  ]
+}'></textarea>
+  </div>
+  
+  <div class="button-group">
+    <button class="btn-primary" id="apply-file-list-btn">📝 应用文件列表</button>
+    <button class="btn-secondary" id="refresh-file-list-btn">🔄 刷新（commitid扫描结果）</button>
+    <button class="btn-warning" id="format-json-btn" style="display: none;">✨ 格式化JSON</button>
+  </div>
+</div>
+
+    <!-- 上传区域 -->
+    <div class="section">
+      <div class="section-title">☁️ 上传到服务器</div>
+      <div class="button-group">
+        <button class="btn-primary" id="upload-btn" disabled>📤 开始上传</button>
+        <button class="btn-danger" id="clear-log-btn">🗑️ 清空日志</button>
+      </div>
+      <div class="progress-bar" id="progress-bar" style="display: none;">
+        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <!-- 日志区域 -->
+    <div class="section">
+      <div class="section-title">📋 操作日志</div>
+      <div class="log-area" id="log-area">
+        <div class="log-entry log-info">系统已就绪，等待操作...</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
